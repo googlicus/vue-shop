@@ -1,3 +1,4 @@
+import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 
 const STORAGE_KEY = 'vue-shop-favorites'
@@ -10,25 +11,27 @@ function loadInitial() {
   }
 }
 
-export const useFavoritesStore = defineStore('favorites', {
-  state: () => ({
-    ids: loadInitial(),
-  }),
-  getters: {
-    count: (state) => state.ids.length,
-    has: (state) => (id) => state.ids.includes(id),
-  },
-  actions: {
-    toggle(id) {
-      if (this.ids.includes(id)) {
-        this.ids = this.ids.filter((x) => x !== id)
-      } else {
-        this.ids.push(id)
-      }
-      this.persist()
-    },
-    persist() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.ids))
-    },
-  },
+export const useFavoritesStore = defineStore('favorites', () => {
+  // --- state ---
+  const ids = ref(loadInitial())
+
+  // --- getters ---
+  const count = computed(() => ids.value.length)
+  const has = (id) => ids.value.includes(id)
+
+  // --- actions ---
+  function toggle(id) {
+    ids.value = ids.value.includes(id)
+      ? ids.value.filter((x) => x !== id)
+      : [...ids.value, id]
+  }
+
+  // --- авто-сохранение в localStorage ---
+  watch(
+    ids,
+    (value) => localStorage.setItem(STORAGE_KEY, JSON.stringify(value)),
+    { deep: true },
+  )
+
+  return { ids, count, has, toggle }
 })
